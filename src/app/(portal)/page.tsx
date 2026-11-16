@@ -286,7 +286,7 @@ export default function PlatformLedgerPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight font-[family-name:var(--font-fraunces)]">
+        <h1 className="text-3xl font-bold tracking-tight font-(family-name:--font-fraunces)">
           Platform ledger
         </h1>
         <p className="text-sm text-white/50 mt-1">

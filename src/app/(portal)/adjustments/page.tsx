@@ -128,7 +128,7 @@ export default function AdjustmentsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight font-[family-name:var(--font-fraunces)]">
+        <h1 className="text-3xl font-bold tracking-tight font-(family-name:--font-fraunces)">
           Partner adjustments
         </h1>
         <p className="text-sm text-white/50 mt-1">
@@ -340,7 +340,7 @@ export default function AdjustmentsPage() {
                       {row.partnerPhone || ""}
                     </div>
                   </TableCell>
-                  <TableCell className="text-xs text-white/50 max-w-[220px] truncate">
+                  <TableCell className="text-xs text-white/50 max-w-55 truncate">
                     {row.note || row.pickfooId || "—"}
                   </TableCell>
                   <TableCell className="text-right font-medium">

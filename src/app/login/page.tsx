@@ -125,9 +125,9 @@ export default function LoginPage() {
         </div>
 
         <Card className="border-white/5 bg-[#002833] text-white overflow-hidden shadow-2xl">
-          <div className="h-2 bg-gradient-to-r from-[#98E32F] to-[#7dbb26]" />
+          <div className="h-2 bg-linear-to-r from-[#98E32F] to-[#7dbb26]" />
           <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl font-[family-name:var(--font-fraunces)]">
+            <CardTitle className="text-2xl font-(family-name:--font-fraunces)">
               {step === "phone" ? "Sign in" : "Enter OTP"}
             </CardTitle>
             <CardDescription className="text-white/40">
