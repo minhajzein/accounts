@@ -10,7 +10,9 @@ import {
   Gift,
   Loader2,
   LogOut,
+  Receipt,
   Store,
+  UserRound,
   Wallet,
 } from "lucide-react";
 import { useAuthStore } from "@/store/useAuthStore";
@@ -21,6 +23,8 @@ const NAV = [
   { name: "Orders", href: "/orders", icon: ClipboardList },
   { name: "Restaurants", href: "/restaurants", icon: Store },
   { name: "Partners", href: "/partners", icon: Bike },
+  { name: "Employees", href: "/employees", icon: UserRound },
+  { name: "Expenses", href: "/expenses", icon: Receipt },
   { name: "Partner adjustments", href: "/adjustments", icon: Gift },
 ];
 
