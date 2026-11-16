@@ -25,7 +25,7 @@ export default function RestaurantsPage() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [status, setStatus] = useState<string>("");
+  const [status, setStatus] = useState<string>("active");
 
   useEffect(() => {
     const t = window.setTimeout(() => {
