@@ -4,12 +4,23 @@ import { useEffect, type ReactNode } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Loader2, LogOut, Wallet, Gift } from "lucide-react";
+import {
+  Bike,
+  ClipboardList,
+  Gift,
+  Loader2,
+  LogOut,
+  Store,
+  Wallet,
+} from "lucide-react";
 import { useAuthStore } from "@/store/useAuthStore";
 import { cn } from "@/lib/utils";
 
 const NAV = [
   { name: "Platform ledger", href: "/", icon: Wallet },
+  { name: "Orders", href: "/orders", icon: ClipboardList },
+  { name: "Restaurants", href: "/restaurants", icon: Store },
+  { name: "Partners", href: "/partners", icon: Bike },
   { name: "Partner adjustments", href: "/adjustments", icon: Gift },
 ];
 
@@ -103,27 +114,41 @@ export default function PortalLayout({ children }: { children: ReactNode }) {
       </aside>
 
       <div className="flex h-dvh flex-col min-w-0 md:pl-56">
-        <header className="md:hidden shrink-0 flex items-center justify-between gap-3 border-b border-white/5 px-4 py-3 bg-[#002833]">
-          <div className="relative h-7 w-24">
-            <Image src="/logo.png" alt="Pickfoo" fill className="object-contain" />
+        <header className="md:hidden shrink-0 border-b border-white/5 bg-[#002833]">
+          <div className="flex items-center justify-between gap-3 px-4 py-3">
+            <div className="relative h-7 w-24">
+              <Image src="/logo.png" alt="Pickfoo" fill className="object-contain" />
+            </div>
+            <button
+              type="button"
+              onClick={() => void logout().then(() => router.replace("/login"))}
+              className="text-xs text-white/50"
+            >
+              Sign out
+            </button>
           </div>
-          <div className="flex gap-2">
-            {NAV.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cn(
-                  "text-xs px-2 py-1 rounded",
-                  pathname === item.href ||
-                    (item.href !== "/" && pathname.startsWith(item.href))
-                    ? "bg-[#98E32F]/15 text-[#98E32F]"
-                    : "text-white/50",
-                )}
-              >
-                {item.name.split(" ")[0]}
-              </Link>
-            ))}
-          </div>
+          <nav className="flex gap-1 overflow-x-auto px-3 pb-3">
+            {NAV.map((item) => {
+              const active =
+                item.href === "/"
+                  ? pathname === "/"
+                  : pathname.startsWith(item.href);
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={cn(
+                    "shrink-0 text-xs px-2.5 py-1.5 rounded-md whitespace-nowrap",
+                    active
+                      ? "bg-[#98E32F]/15 text-[#98E32F]"
+                      : "text-white/50",
+                  )}
+                >
+                  {item.name}
+                </Link>
+              );
+            })}
+          </nav>
         </header>
         <main className="flex-1 min-h-0 overflow-y-auto">
           <div className="mx-auto max-w-7xl p-4 sm:p-8">{children}</div>
