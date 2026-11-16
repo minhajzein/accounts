@@ -1,10 +1,11 @@
 "use client";
 
-import { startTransition, useMemo, useState } from "react";
+import { startTransition, useEffect, useMemo, useState } from "react";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   Table,
@@ -28,6 +29,7 @@ import {
   fetchPartnerAdjustments,
   type PartnerAdjustmentPurpose,
 } from "@/lib/api/accounts-ledger";
+import { getApiErrorMessage } from "@/lib/axios";
 import { cn } from "@/lib/utils";
 
 const money = new Intl.NumberFormat("en-IN", {
@@ -80,12 +82,21 @@ function purposeLabel(purpose: string) {
 
 export default function AdjustmentsPage() {
   const [page, setPage] = useState(1);
-  const [preset, setPreset] = useState<DatePreset>("this_month");
+  const [preset, setPreset] = useState<DatePreset>("all");
   const [customFrom, setCustomFrom] = useState("");
   const [customTo, setCustomTo] = useState("");
   const [purpose, setPurpose] = useState<PartnerAdjustmentPurpose>("all");
   const [direction, setDirection] = useState<"all" | "credit" | "debit">("all");
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+
+  useEffect(() => {
+    const t = window.setTimeout(() => {
+      setDebouncedSearch(search.trim());
+      setPage(1);
+    }, 300);
+    return () => window.clearTimeout(t);
+  }, [search]);
 
   const dateRange = useMemo(() => {
     if (preset === "custom") {
@@ -99,7 +110,7 @@ export default function AdjustmentsPage() {
     [preset, customFrom, customTo],
   );
 
-  const { data, isLoading, isFetching } = useQuery({
+  const { data, isLoading, isFetching, isError, error, refetch } = useQuery({
     queryKey: [
       "partner-adjustments",
       page,
@@ -107,7 +118,7 @@ export default function AdjustmentsPage() {
       dateRange.to,
       purpose,
       direction,
-      search,
+      debouncedSearch,
     ],
     queryFn: () =>
       fetchPartnerAdjustments({
@@ -117,13 +128,41 @@ export default function AdjustmentsPage() {
         to: dateRange.to,
         purpose,
         direction: direction === "all" ? undefined : direction,
-        search: search.trim() || undefined,
+        search: debouncedSearch || undefined,
       }),
     placeholderData: keepPreviousData,
+    retry: 1,
   });
 
   const rows = data?.data ?? [];
   const summary = data?.summary;
+
+  if (isLoading && !data) {
+    return (
+      <div className="flex min-h-[60vh] flex-col items-center justify-center gap-3 text-white">
+        <Loader2 className="h-8 w-8 animate-spin text-[#98E32F]" />
+        <p className="text-sm text-white/60">Loading partner adjustments…</p>
+      </div>
+    );
+  }
+
+  if (isError && !data) {
+    return (
+      <div className="flex min-h-[60vh] flex-col items-center justify-center gap-3 text-white">
+        <p className="text-sm text-red-300">
+          {getApiErrorMessage(error, "Could not load partner adjustments")}
+        </p>
+        <Button
+          type="button"
+          size="sm"
+          className="bg-[#98E32F] text-[#013644] hover:bg-[#98E32F]/90"
+          onClick={() => void refetch()}
+        >
+          Retry
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

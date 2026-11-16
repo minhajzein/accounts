@@ -31,15 +31,16 @@ export default function PortalLayout({ children }: { children: ReactNode }) {
 
   if (!isInitialized || (!isAuthenticated && !connectionError)) {
     return (
-      <div className="min-h-screen bg-[#013644] flex items-center justify-center">
+      <div className="h-dvh bg-[#013644] flex flex-col items-center justify-center gap-3 text-white">
         <Loader2 className="h-8 w-8 animate-spin text-[#98E32F]" />
+        <p className="text-sm text-white/50">Loading accounts…</p>
       </div>
     );
   }
 
   if (connectionError) {
     return (
-      <div className="min-h-screen bg-[#013644] flex flex-col items-center justify-center gap-4 text-white">
+      <div className="h-dvh bg-[#013644] flex flex-col items-center justify-center gap-4 text-white">
         <p className="text-white/70">Could not reach the API. Check your connection.</p>
         <button
           type="button"
@@ -53,9 +54,9 @@ export default function PortalLayout({ children }: { children: ReactNode }) {
   }
 
   return (
-    <div className="min-h-screen bg-[#013644] text-white flex">
-      <aside className="hidden md:flex w-56 flex-col border-r border-white/5 bg-[#002833]">
-        <div className="p-5 border-b border-white/5">
+    <div className="h-dvh bg-[#013644] text-white overflow-hidden">
+      <aside className="hidden md:fixed md:inset-y-0 md:left-0 md:z-30 md:flex md:h-dvh md:w-56 md:flex-col border-r border-white/5 bg-[#002833]">
+        <div className="p-5 border-b border-white/5 shrink-0">
           <div className="relative h-8 w-28">
             <Image src="/logo.png" alt="Pickfoo" fill className="object-contain" />
           </div>
@@ -63,7 +64,7 @@ export default function PortalLayout({ children }: { children: ReactNode }) {
             Accounts
           </p>
         </div>
-        <nav className="flex-1 p-3 space-y-1">
+        <nav className="flex-1 overflow-y-auto p-3 space-y-1">
           {NAV.map((item) => {
             const active =
               item.href === "/"
@@ -87,7 +88,7 @@ export default function PortalLayout({ children }: { children: ReactNode }) {
             );
           })}
         </nav>
-        <div className="p-4 border-t border-white/5 space-y-2">
+        <div className="p-4 border-t border-white/5 space-y-2 shrink-0">
           <p className="text-xs text-white/50 truncate">{user?.name || "Accountant"}</p>
           <p className="text-[11px] text-white/30 truncate">{user?.phone}</p>
           <button
@@ -101,8 +102,8 @@ export default function PortalLayout({ children }: { children: ReactNode }) {
         </div>
       </aside>
 
-      <div className="flex-1 flex flex-col min-w-0">
-        <header className="md:hidden flex items-center justify-between gap-3 border-b border-white/5 px-4 py-3 bg-[#002833]">
+      <div className="flex h-dvh flex-col min-w-0 md:pl-56">
+        <header className="md:hidden shrink-0 flex items-center justify-between gap-3 border-b border-white/5 px-4 py-3 bg-[#002833]">
           <div className="relative h-7 w-24">
             <Image src="/logo.png" alt="Pickfoo" fill className="object-contain" />
           </div>
@@ -124,7 +125,7 @@ export default function PortalLayout({ children }: { children: ReactNode }) {
             ))}
           </div>
         </header>
-        <main className="flex-1 overflow-auto">
+        <main className="flex-1 min-h-0 overflow-y-auto">
           <div className="mx-auto max-w-7xl p-4 sm:p-8">{children}</div>
         </main>
       </div>

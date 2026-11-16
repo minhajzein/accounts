@@ -27,12 +27,14 @@ export default function LoginPage() {
   const [otp, setOtp] = useState("");
   const [normalizedPhone, setNormalizedPhone] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isEntering, setIsEntering] = useState(false);
   const { setAuth, initialize } = useAuthStore();
   const router = useRouter();
 
   useEffect(() => {
     void initialize().then(() => {
       if (useAuthStore.getState().isAuthenticated) {
+        setIsEntering(true);
         router.replace("/");
       }
     });
@@ -67,8 +69,10 @@ export default function LoginPage() {
       });
       if (response.data.success) {
         setAuth(response.data.user, response.data.token);
+        setIsEntering(true);
         toast.success("Welcome to Pickfoo Accounts");
-        router.push("/");
+        router.replace("/");
+        return;
       }
     } catch (error: unknown) {
       let message = "Invalid OTP";
@@ -95,8 +99,18 @@ export default function LoginPage() {
     }
   };
 
+  if (isEntering) {
+    return (
+      <div className="h-dvh bg-[#013644] flex flex-col items-center justify-center gap-3 text-white">
+        <Loader2 className="h-8 w-8 animate-spin text-[#98E32F]" />
+        <p className="text-sm text-white/60">Opening accounts portal…</p>
+        <p className="text-xs text-white/35">Loading ledger data</p>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-[#013644] flex items-center justify-center p-4 relative overflow-hidden">
+    <div className="h-dvh bg-[#013644] flex items-center justify-center p-4 relative overflow-hidden">
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0 opacity-40"

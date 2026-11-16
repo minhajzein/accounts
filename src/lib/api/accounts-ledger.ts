@@ -102,7 +102,14 @@ export interface PlatformWalletSummary {
   partner: PlatformWalletSide;
   platform: {
     retainedBalance: number;
+    transferBalance?: number;
     transferCount: number;
+    expensesTotal?: number;
+    expensesCount?: number;
+    partnerBonusTotal?: number;
+    partnerBonusCount?: number;
+    /** Settled bank − owed wallets − expenses. */
+    netBalance?: number;
   };
 }
 
@@ -198,7 +205,16 @@ function emptyWallet(): PlatformWalletSummary {
     bank: emptyBank(),
     restaurant: emptyWalletSide(),
     partner: emptyWalletSide(),
-    platform: { retainedBalance: 0, transferCount: 0 },
+    platform: {
+      retainedBalance: 0,
+      transferBalance: 0,
+      transferCount: 0,
+      expensesTotal: 0,
+      expensesCount: 0,
+      partnerBonusTotal: 0,
+      partnerBonusCount: 0,
+      netBalance: 0,
+    },
   };
 }
 
@@ -269,18 +285,20 @@ function mapWallet(raw: unknown): PlatformWalletSummary {
     bank: mapBank(walletRaw.bank),
     restaurant: mapWalletSide(walletRaw.restaurant),
     partner: mapWalletSide(walletRaw.partner),
-    platform: {
-      retainedBalance:
-        Number(
-          (walletRaw.platform as { retainedBalance?: number } | undefined)
-            ?.retainedBalance,
-        ) || 0,
-      transferCount:
-        Number(
-          (walletRaw.platform as { transferCount?: number } | undefined)
-            ?.transferCount,
-        ) || 0,
-    },
+    platform: (() => {
+      const p = (walletRaw.platform ?? {}) as Record<string, unknown>;
+      return {
+        retainedBalance: Number(p.retainedBalance) || 0,
+        transferBalance: Number(p.transferBalance ?? p.retainedBalance) || 0,
+        transferCount: Number(p.transferCount) || 0,
+        expensesTotal: Number(p.expensesTotal) || 0,
+        expensesCount: Number(p.expensesCount) || 0,
+        partnerBonusTotal: Number(p.partnerBonusTotal) || 0,
+        partnerBonusCount: Number(p.partnerBonusCount) || 0,
+        netBalance:
+          p.netBalance != null ? Number(p.netBalance) || 0 : undefined,
+      };
+    })(),
   };
 }
 

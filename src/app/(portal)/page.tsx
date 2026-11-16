@@ -282,6 +282,20 @@ export default function PlatformLedgerPage() {
   const allTimeGst = splitGst(allTimeData);
   const rows = data?.data ?? [];
   const bank = pickBank(settlement, data?.summary.bank, wallet?.bank);
+  const isBootstrapping =
+    (isLoading && !data) ||
+    (isWalletLoading && !wallet) ||
+    (isSettlementLoading && !settlement);
+
+  if (isBootstrapping) {
+    return (
+      <div className="flex min-h-[60vh] flex-col items-center justify-center gap-3 text-white">
+        <Loader2 className="h-8 w-8 animate-spin text-[#98E32F]" />
+        <p className="text-sm text-white/60">Loading platform ledger…</p>
+        <p className="text-xs text-white/35">Fetching wallet, settlement & activity</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -428,7 +442,10 @@ export default function PlatformLedgerPage() {
         />
         <MiniStat
           label="Platform wallet"
-          value={formatMoney(wallet?.platform?.retainedBalance)}
+          value={formatMoney(
+            wallet?.platform?.netBalance ?? wallet?.platform?.retainedBalance,
+          )}
+          hint={`Bank after owed wallets + expenses · expenses ${formatMoney(wallet?.platform?.expensesTotal)} · partner bonuses ${formatMoney(wallet?.platform?.partnerBonusTotal)}`}
           loading={isWalletLoading}
         />
         <MiniStat
