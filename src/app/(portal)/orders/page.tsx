@@ -302,7 +302,7 @@ export default function OrdersPage() {
                     rows.map((row) => (
                       <TableRow
                         key={row.id}
-                        className="border-white/5 hover:bg-white/[0.03]"
+                        className="border-white/5 hover:bg-white/3"
                       >
                         <TableCell className="font-medium">
                           {row.pickfooId || row.id.slice(-6)}

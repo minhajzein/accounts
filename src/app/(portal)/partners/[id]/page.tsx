@@ -342,7 +342,7 @@ export default function PartnerLedgerPage() {
                   transactions.map((tx) => (
                     <TableRow
                       key={tx._id}
-                      className="border-white/5 hover:bg-white/[0.03]"
+                      className="border-white/5 hover:bg-white/3"
                     >
                       <TableCell className="text-white/45 text-sm whitespace-nowrap">
                         {formatDate(tx.createdAt)}
@@ -376,7 +376,7 @@ export default function PartnerLedgerPage() {
                         {tx.direction === "credit" ? "+" : "−"}
                         {formatMoney(tx.amount)}
                       </TableCell>
-                      <TableCell className="max-w-[220px] truncate text-white/40 text-xs">
+                      <TableCell className="max-w-55 truncate text-white/40 text-xs">
                         {tx.meta?.note ||
                           tx.meta?.purpose ||
                           tx.meta?.trigger ||

@@ -148,7 +148,7 @@ export default function PartnersPage() {
                     rows.map((row) => (
                       <TableRow
                         key={row._id}
-                        className="border-white/5 hover:bg-white/[0.03]"
+                        className="border-white/5 hover:bg-white/3"
                       >
                         <TableCell>
                           <Link
