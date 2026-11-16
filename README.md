@@ -23,3 +23,4 @@ Set `NEXT_PUBLIC_API_URL` if not using the default `https://api.pickfoo.in/admin
 ## Backend
 
 Routes live on admin-api under `/api/v1/accounts/*`.
+OTP uses `CUSTOMER_MSG91_OTP_TEMPLATE_ID` on admin-api (same template as the customer app).
