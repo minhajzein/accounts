@@ -49,6 +49,13 @@ import {
   type PlatformLedgerEntry,
   type PlatformLedgerKind,
 } from "@/lib/api/accounts-ledger";
+import { ExportExcelButton } from "@/components/ExportExcelButton";
+import {
+  downloadExcel,
+  excelStamp,
+  fetchAllPages,
+  formatExcelDate,
+} from "@/lib/export-excel";
 import { cn } from "@/lib/utils";
 
 const money = new Intl.NumberFormat("en-IN", {
@@ -277,6 +284,61 @@ export default function PlatformLedgerPage() {
     onError: () => toast.error("Could not download GST CSV"),
   });
 
+  const excelMutation = useMutation({
+    mutationFn: async () => {
+      const rows = await fetchAllPages(
+        (page, limit) =>
+          fetchPlatformLedger({
+            page,
+            limit,
+            from: dateRange.from,
+            to: dateRange.to,
+            kind,
+            includeWallet: false,
+            includeAllTime: false,
+            includeFilteredCommission: false,
+          }),
+        { limit: 100 },
+      );
+      downloadExcel({
+        filename: `pickfoo-platform-ledger-${excelStamp()}`,
+        sheetName: "Platform ledger",
+        columns: [
+          { header: "When", value: (r) => formatExcelDate(r.createdAt) },
+          { header: "Type", value: (r) => kindLabel(entryKind(r)) },
+          { header: "Direction", value: (r) => entryDirection(r) },
+          {
+            header: "Party",
+            value: (r) => r.partyName || r.restaurantName || "",
+          },
+          {
+            header: "Reference",
+            value: (r) => r.pickfooId || r.reference || r.id,
+          },
+          { header: "Status", value: (r) => r.status || "" },
+          { header: "Amount", value: (r) => entryAmount(r) },
+          {
+            header: "Commission",
+            value: (r) =>
+              entryKind(r) === "commission"
+                ? Number(r.platformCommission) || 0
+                : "",
+          },
+          { header: "GST", value: (r) => Number(r.gstAmount) || 0 },
+          {
+            header: "GST destination",
+            value: (r) => r.gstDestination || "",
+          },
+          { header: "Notes", value: (r) => r.notes || "" },
+        ],
+        rows,
+      });
+      return rows.length;
+    },
+    onSuccess: (count) => toast.success(`Exported ${count} rows to Excel`),
+    onError: () => toast.error("Could not export Excel"),
+  });
+
   const filtered = data?.summary.filtered;
   const periodGst = splitGst(filtered);
   const allTimeGst = splitGst(allTimeData);
@@ -367,6 +429,11 @@ export default function PlatformLedgerPage() {
             )}
             Download GST CSV
           </Button>
+          <ExportExcelButton
+            loading={excelMutation.isPending}
+            onClick={() => excelMutation.mutate()}
+            label="Export ledger XL"
+          />
         </CardContent>
       </Card>
 

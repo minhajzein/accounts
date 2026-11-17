@@ -1,8 +1,13 @@
 "use client";
 
 import { startTransition, useMemo, useState } from "react";
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import {
+  keepPreviousData,
+  useMutation,
+  useQuery,
+} from "@tanstack/react-query";
 import { CheckCircle2, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -16,8 +21,15 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { ListPagination } from "@/components/ui/list-pagination";
+import { ExportExcelButton } from "@/components/ExportExcelButton";
 import { DEFAULT_PAGE_SIZE } from "@/lib/pagination";
 import { fetchAccountsEmployees } from "@/lib/api/accounts-hr";
+import {
+  downloadExcel,
+  excelStamp,
+  fetchAllPages,
+  formatExcelDate,
+} from "@/lib/export-excel";
 import { getApiErrorMessage } from "@/lib/axios";
 import { cn } from "@/lib/utils";
 
@@ -75,13 +87,71 @@ export default function AccountsEmployeesPage() {
     year: "numeric",
   });
 
+  const excelMutation = useMutation({
+    mutationFn: async () => {
+      const exportRows = await fetchAllPages(
+        (page, limit) =>
+          fetchAccountsEmployees({
+            page,
+            limit,
+            search: search.trim() || undefined,
+            status,
+            year: yearNum,
+            month: monthNum,
+          }),
+        { limit: 100 },
+      );
+      downloadExcel({
+        filename: `pickfoo-employees-${excelStamp()}`,
+        sheetName: "Employees",
+        columns: [
+          { header: "Name", value: (r) => r.name },
+          { header: "Role", value: (r) => r.role || "" },
+          { header: "Phone", value: (r) => r.phone || "" },
+          { header: "Email", value: (r) => r.email || "" },
+          { header: "Status", value: (r) => r.status },
+          {
+            header: "Monthly salary",
+            value: (r) => Number(r.monthlySalary) || 0,
+          },
+          {
+            header: `${monthLabel} paid`,
+            value: (r) => (r.salaryMonth?.paid ? "Yes" : "No"),
+          },
+          {
+            header: "Paid amount",
+            value: (r) =>
+              r.salaryMonth?.paid
+                ? Number(r.salaryMonth.payment?.amount) || 0
+                : "",
+          },
+          {
+            header: "Paid at",
+            value: (r) =>
+              formatExcelDate(r.salaryMonth?.payment?.paidAt || null),
+          },
+        ],
+        rows: exportRows,
+      });
+      return exportRows.length;
+    },
+    onSuccess: (count) => toast.success(`Exported ${count} rows to Excel`),
+    onError: () => toast.error("Could not export Excel"),
+  });
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Employees</h1>
-        <p className="mt-1 text-sm text-white/45">
-          Read-only staff salaries · paid status for {monthLabel}
-        </p>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">Employees</h1>
+          <p className="mt-1 text-sm text-white/45">
+            Read-only staff salaries · paid status for {monthLabel}
+          </p>
+        </div>
+        <ExportExcelButton
+          loading={excelMutation.isPending}
+          onClick={() => excelMutation.mutate()}
+        />
       </div>
 
       <div className="flex flex-col lg:flex-row gap-3 lg:items-end">

@@ -36,6 +36,12 @@ import {
   fetchRestaurantLedgerTransactions,
   type RestaurantLedgerTx,
 } from "@/lib/api/accounts-entities";
+import { ExportExcelButton } from "@/components/ExportExcelButton";
+import {
+  downloadExcel,
+  excelStamp,
+  formatExcelDate,
+} from "@/lib/export-excel";
 import { getApiErrorMessage } from "@/lib/axios";
 import { cn } from "@/lib/utils";
 
@@ -202,6 +208,51 @@ export default function RestaurantLedgerPage() {
     onError: () => toast.error("Could not download PDF"),
   });
 
+  const excelMutation = useMutation({
+    mutationFn: async () => {
+      const exportRows = await fetchRestaurantLedgerTransactions(restaurantId, {
+        from: dateRange.from,
+        to: dateRange.to,
+        type: txType === "all" ? undefined : txType,
+        limit: 500,
+      });
+      downloadExcel({
+        filename: `pickfoo-restaurant-ledger-${excelStamp()}`,
+        sheetName: "Restaurant ledger",
+        columns: [
+          { header: "When", value: (r) => formatExcelDate(r.createdAt) },
+          { header: "Type", value: (r) => r.type },
+          { header: "Status", value: (r) => r.status },
+          {
+            header: "Order",
+            value: (r) => {
+              const order = r.order;
+              if (!order) return "";
+              if (typeof order === "string") return order;
+              return order.pickfooId || order._id || "";
+            },
+          },
+          { header: "Amount", value: (r) => Number(r.amount) || 0 },
+          { header: "Gross", value: (r) => Number(r.grossAmount) || 0 },
+          { header: "GST", value: (r) => Number(r.gstAmount) || 0 },
+          {
+            header: "Commission",
+            value: (r) => Number(r.commissionAmount) || 0,
+          },
+          {
+            header: "GST to",
+            value: (r) => gstDest(r) || "",
+          },
+          { header: "Notes", value: (r) => r.notes || "" },
+        ],
+        rows: exportRows,
+      });
+      return exportRows.length;
+    },
+    onSuccess: (count) => toast.success(`Exported ${count} rows to Excel`),
+    onError: () => toast.error("Could not export Excel"),
+  });
+
   const restaurant = ledger?.restaurant;
   const summary = ledger?.summary;
   const filtered = Boolean(dateRange.from || dateRange.to);
@@ -314,6 +365,10 @@ export default function RestaurantLedgerPage() {
               )}
               Monthly PDF
             </Button>
+            <ExportExcelButton
+              loading={excelMutation.isPending}
+              onClick={() => excelMutation.mutate()}
+            />
           </div>
         </div>
       </div>

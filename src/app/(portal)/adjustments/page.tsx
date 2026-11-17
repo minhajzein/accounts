@@ -1,8 +1,13 @@
 "use client";
 
 import { startTransition, useEffect, useMemo, useState } from "react";
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import {
+  keepPreviousData,
+  useMutation,
+  useQuery,
+} from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -16,6 +21,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { ListPagination } from "@/components/ui/list-pagination";
+import { ExportExcelButton } from "@/components/ExportExcelButton";
 import { DEFAULT_PAGE_SIZE } from "@/lib/pagination";
 import {
   DATE_PRESETS,
@@ -29,6 +35,12 @@ import {
   fetchPartnerAdjustments,
   type PartnerAdjustmentPurpose,
 } from "@/lib/api/accounts-ledger";
+import {
+  downloadExcel,
+  excelStamp,
+  fetchAllPages,
+  formatExcelDate,
+} from "@/lib/export-excel";
 import { getApiErrorMessage } from "@/lib/axios";
 import { cn } from "@/lib/utils";
 
@@ -137,6 +149,42 @@ export default function AdjustmentsPage() {
   const rows = data?.data ?? [];
   const summary = data?.summary;
 
+  const excelMutation = useMutation({
+    mutationFn: async () => {
+      const exportRows = await fetchAllPages(
+        (page, limit) =>
+          fetchPartnerAdjustments({
+            page,
+            limit,
+            from: dateRange.from,
+            to: dateRange.to,
+            purpose,
+            direction: direction === "all" ? undefined : direction,
+            search: debouncedSearch || undefined,
+          }),
+        { limit: 100 },
+      );
+      downloadExcel({
+        filename: `pickfoo-partner-adjustments-${excelStamp()}`,
+        sheetName: "Adjustments",
+        columns: [
+          { header: "When", value: (r) => formatExcelDate(r.createdAt) },
+          { header: "Purpose", value: (r) => purposeLabel(r.purpose) },
+          { header: "Direction", value: (r) => r.direction },
+          { header: "Amount", value: (r) => Number(r.amount) || 0 },
+          { header: "Partner", value: (r) => r.partnerName || "" },
+          { header: "Phone", value: (r) => r.partnerPhone || "" },
+          { header: "Order", value: (r) => r.pickfooId || "" },
+          { header: "Note", value: (r) => r.note || "" },
+        ],
+        rows: exportRows,
+      });
+      return exportRows.length;
+    },
+    onSuccess: (count) => toast.success(`Exported ${count} rows to Excel`),
+    onError: () => toast.error("Could not export Excel"),
+  });
+
   if (isLoading && !data) {
     return (
       <div className="flex min-h-[60vh] flex-col items-center justify-center gap-3 text-white">
@@ -166,14 +214,20 @@ export default function AdjustmentsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight font-(family-name:--font-fraunces)">
-          Partner adjustments
-        </h1>
-        <p className="text-sm text-white/50 mt-1">
-          Partner bonus credits, refund clawbacks, admin adjustments, and
-          restaurant→partner transfers. Read-only.
-        </p>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight font-(family-name:--font-fraunces)">
+            Partner adjustments
+          </h1>
+          <p className="text-sm text-white/50 mt-1">
+            Partner bonus credits, refund clawbacks, admin adjustments, and
+            restaurant→partner transfers. Read-only.
+          </p>
+        </div>
+        <ExportExcelButton
+          loading={excelMutation.isPending}
+          onClick={() => excelMutation.mutate()}
+        />
       </div>
 
       <div className="grid gap-3 sm:grid-cols-3">

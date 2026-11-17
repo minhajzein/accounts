@@ -1,8 +1,13 @@
 "use client";
 
 import { startTransition, useMemo, useState } from "react";
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import {
+  keepPreviousData,
+  useMutation,
+  useQuery,
+} from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -16,6 +21,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { ListPagination } from "@/components/ui/list-pagination";
+import { ExportExcelButton } from "@/components/ExportExcelButton";
 import { DEFAULT_PAGE_SIZE } from "@/lib/pagination";
 import {
   DATE_PRESETS,
@@ -26,6 +32,12 @@ import {
   type DatePreset,
 } from "@/lib/date-presets";
 import { fetchAccountsOrders } from "@/lib/api/accounts-entities";
+import {
+  downloadExcel,
+  excelStamp,
+  fetchAllPages,
+  formatExcelDate,
+} from "@/lib/export-excel";
 import { getApiErrorMessage } from "@/lib/axios";
 import { cn } from "@/lib/utils";
 
@@ -133,13 +145,60 @@ export default function OrdersPage() {
   const rows = data?.data ?? [];
   const summary = data?.summary;
 
+  const excelMutation = useMutation({
+    mutationFn: async () => {
+      const exportRows = await fetchAllPages(
+        (page, limit) =>
+          fetchAccountsOrders({
+            page,
+            limit,
+            from: dateRange.from,
+            to: dateRange.to,
+            status: status === "all" ? undefined : status,
+          }),
+        { limit: 50 },
+      );
+      downloadExcel({
+        filename: `pickfoo-orders-${excelStamp()}`,
+        sheetName: "Orders",
+        columns: [
+          { header: "When", value: (r) => formatExcelDate(r.createdAt) },
+          { header: "Order", value: (r) => r.pickfooId || r.id },
+          { header: "Status", value: (r) => r.status },
+          { header: "Payment", value: (r) => r.paymentStatus || "" },
+          { header: "Restaurant", value: (r) => r.restaurantName || "" },
+          { header: "Partner", value: (r) => r.deliveryPartnerName || "" },
+          { header: "Total", value: (r) => Number(r.totalAmount) || 0 },
+          { header: "GST", value: (r) => Number(r.gstAmount) || 0 },
+          { header: "CGST", value: (r) => Number(r.cgstAmount) || 0 },
+          { header: "SGST", value: (r) => Number(r.sgstAmount) || 0 },
+          { header: "GST to", value: (r) => r.gstDestination || "" },
+          {
+            header: "Commission",
+            value: (r) => Number(r.platformCommission) || 0,
+          },
+        ],
+        rows: exportRows,
+      });
+      return exportRows.length;
+    },
+    onSuccess: (count) => toast.success(`Exported ${count} rows to Excel`),
+    onError: () => toast.error("Could not export Excel"),
+  });
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Orders</h1>
-        <p className="mt-1 text-sm text-white/45">
-          Order totals, commission credits, and GST split · {periodLabel}
-        </p>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">Orders</h1>
+          <p className="mt-1 text-sm text-white/45">
+            Order totals, commission credits, and GST split · {periodLabel}
+          </p>
+        </div>
+        <ExportExcelButton
+          loading={excelMutation.isPending}
+          onClick={() => excelMutation.mutate()}
+        />
       </div>
 
       <div className="flex flex-wrap gap-2">

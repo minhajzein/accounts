@@ -1,9 +1,14 @@
 "use client";
 
 import { startTransition, useEffect, useState } from "react";
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import {
+  keepPreviousData,
+  useMutation,
+  useQuery,
+} from "@tanstack/react-query";
 import Link from "next/link";
 import { Loader2, Search, Wallet } from "lucide-react";
+import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -17,8 +22,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { ListPagination } from "@/components/ui/list-pagination";
+import { ExportExcelButton } from "@/components/ExportExcelButton";
 import { DEFAULT_PAGE_SIZE } from "@/lib/pagination";
 import { fetchAccountsRestaurants } from "@/lib/api/accounts-entities";
+import { downloadExcel, excelStamp, fetchAllPages } from "@/lib/export-excel";
 import { getApiErrorMessage } from "@/lib/axios";
 
 export default function RestaurantsPage() {
@@ -49,13 +56,58 @@ export default function RestaurantsPage() {
 
   const rows = data?.data ?? [];
 
+  const excelMutation = useMutation({
+    mutationFn: async () => {
+      const exportRows = await fetchAllPages(
+        (page, limit) =>
+          fetchAccountsRestaurants({
+            page,
+            limit,
+            search: debouncedSearch || undefined,
+            status: status || undefined,
+          }),
+        { limit: 100 },
+      );
+      downloadExcel({
+        filename: `pickfoo-restaurants-${excelStamp()}`,
+        sheetName: "Restaurants",
+        columns: [
+          { header: "Name", value: (r) => r.name },
+          { header: "Status", value: (r) => r.status || "" },
+          { header: "Phone", value: (r) => r.contactNumber || "" },
+          { header: "Email", value: (r) => r.email || "" },
+          { header: "City", value: (r) => r.address?.city || "" },
+          {
+            header: "Commission %",
+            value: (r) => Number(r.commissionPercent) || 0,
+          },
+          {
+            header: "GST registered",
+            value: (r) => (r.isGstRegistered ? "Yes" : "No"),
+          },
+          { header: "GSTIN", value: (r) => r.gstNumber || "" },
+        ],
+        rows: exportRows,
+      });
+      return exportRows.length;
+    },
+    onSuccess: (count) => toast.success(`Exported ${count} rows to Excel`),
+    onError: () => toast.error("Could not export Excel"),
+  });
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Restaurants</h1>
-        <p className="mt-1 text-sm text-white/45">
-          Open a restaurant to view credits, debits, and GST details
-        </p>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">Restaurants</h1>
+          <p className="mt-1 text-sm text-white/45">
+            Open a restaurant to view credits, debits, and GST details
+          </p>
+        </div>
+        <ExportExcelButton
+          loading={excelMutation.isPending}
+          onClick={() => excelMutation.mutate()}
+        />
       </div>
 
       <div className="flex flex-col sm:flex-row gap-3">

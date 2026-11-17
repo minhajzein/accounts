@@ -1,9 +1,14 @@
 "use client";
 
 import { startTransition, useMemo, useState } from "react";
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import {
+  keepPreviousData,
+  useMutation,
+  useQuery,
+} from "@tanstack/react-query";
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import { toast } from "sonner";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -17,6 +22,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { ExportExcelButton } from "@/components/ExportExcelButton";
 import {
   DATE_PRESETS,
   periodLabelFor,
@@ -29,6 +35,11 @@ import {
   fetchPartnerLedger,
   fetchPartnerLedgerTransactions,
 } from "@/lib/api/accounts-entities";
+import {
+  downloadExcel,
+  excelStamp,
+  formatExcelDate,
+} from "@/lib/export-excel";
 import { getApiErrorMessage } from "@/lib/axios";
 import { cn } from "@/lib/utils";
 
@@ -146,6 +157,40 @@ export default function PartnerLedgerPage() {
   const partner = ledger?.partner;
   const summary = ledger?.summary;
 
+  const excelMutation = useMutation({
+    mutationFn: async () => {
+      const exportRows = await fetchPartnerLedgerTransactions(partnerId, {
+        from: dateRange.from,
+        to: dateRange.to,
+        direction: direction === "all" ? undefined : direction,
+        limit: 500,
+      });
+      downloadExcel({
+        filename: `pickfoo-partner-ledger-${excelStamp()}`,
+        sheetName: "Partner ledger",
+        columns: [
+          { header: "When", value: (r) => formatExcelDate(r.createdAt) },
+          {
+            header: "Type",
+            value: (r) => String(r.type || "").replace(/_/g, " "),
+          },
+          { header: "Direction", value: (r) => r.direction },
+          { header: "Order", value: (r) => r.pickfooId || "" },
+          { header: "Amount", value: (r) => Number(r.amount) || 0 },
+          {
+            header: "Note",
+            value: (r) =>
+              r.meta?.note || r.meta?.purpose || r.meta?.trigger || "",
+          },
+        ],
+        rows: exportRows,
+      });
+      return exportRows.length;
+    },
+    onSuccess: (count) => toast.success(`Exported ${count} rows to Excel`),
+    onError: () => toast.error("Could not export Excel"),
+  });
+
   if (isLedgerError) {
     return (
       <div className="space-y-4">
@@ -182,25 +227,33 @@ export default function PartnerLedgerPage() {
           <ArrowLeft className="h-4 w-4" />
           Partners
         </Link>
-        <h1 className="mt-3 text-2xl font-semibold tracking-tight">
-          {isLedgerLoading && !partner
-            ? "Loading…"
-            : partner?.fullName || "Partner"}
-        </h1>
-        <p className="mt-1 text-sm text-white/45">
-          Credits &amp; debits · {periodLabel}
-        </p>
-        <div className="mt-2 flex flex-wrap gap-2">
-          {partner?.status ? (
-            <Badge variant="outline" className="border-white/20 text-white/60">
-              {partner.status}
-            </Badge>
-          ) : null}
-          {partner?.phone ? (
-            <Badge variant="outline" className="border-white/20 text-white/60">
-              {partner.phone}
-            </Badge>
-          ) : null}
+        <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h1 className="text-2xl font-semibold tracking-tight">
+              {isLedgerLoading && !partner
+                ? "Loading…"
+                : partner?.fullName || "Partner"}
+            </h1>
+            <p className="mt-1 text-sm text-white/45">
+              Credits &amp; debits · {periodLabel}
+            </p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {partner?.status ? (
+                <Badge variant="outline" className="border-white/20 text-white/60">
+                  {partner.status}
+                </Badge>
+              ) : null}
+              {partner?.phone ? (
+                <Badge variant="outline" className="border-white/20 text-white/60">
+                  {partner.phone}
+                </Badge>
+              ) : null}
+            </div>
+          </div>
+          <ExportExcelButton
+            loading={excelMutation.isPending}
+            onClick={() => excelMutation.mutate()}
+          />
         </div>
       </div>
 
